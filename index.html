@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes de la Empresa</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .section h3 { margin-top: 0; margin-bottom: 10px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; }
+        .buttons { display: flex; gap: 10px; margin-top: 10px; }
+        button { padding: 8px 15px; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #45a049; }
+        button.delete { background-color: #f44336; }
+        button.delete:hover { background-color: #d32f2f; }
+        button.search { background-color: #2196F3; }
+        button.search:hover { background-color: #0b7dda; }
+        .message { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background-color: #dff0d8; color: #3c763d; }
+        .error { background-color: #f2dede; color: #a94442; }
+    </style>
+</head>
+<body>
+    <h1>Clientes de la Empresa</h1>
+
+    <div id="message-container"></div>
+
+    <div class="section">
+        <h3>Buscar Clientes</h3>
+        <div class="form-group">
+            <input type="text" id="search-term" placeholder="Buscar por DNI, nombre o teléfono">
+        </div>
+        <div class="buttons">
+            <button id="search-btn" class="search">Buscar</button>
+            <button id="clear-search-btn">Ver Todos</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Agregar Cliente</h3>
+        <form id="client-form">
+            <div class="form-group">
+                <label for="dni">DNI:</label>
+                <input type="text" id="dni" required>
+            </div>
+            <div class="form-group">
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" required>
+            </div>
+            <div class="form-group">
+                <label for="domicilio">Domicilio:</label>
+                <input type="text" id="domicilio">
+            </div>
+            <div class="form-group">
+                <label for="celular">Celular:</label>
+                <input type="text" id="celular" required>
+            </div>
+            <div class="form-group">
+                <label for="estado">Estado:</label>
+                <select id="estado" required>
+                    <option value="">Seleccione estado</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="pago">Pago</option>
+                </select>
+            </div>
+            <button type="submit">Agregar Cliente</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h3>Editar Cliente</h3>
+        <div class="form-group">
+            <label for="edit-dni-search">DNI del cliente a editar:</label>
+            <input type="text" id="edit-dni-search" placeholder="Ingrese DNI">
+        </div>
+        <button id="search-for-edit-btn" class="search">Buscar para editar</button>
+        
+        <div id="edit-form" style="display: none; margin-top: 15px;">
+            <div class="form-group">
+                <label for="edit-dni">DNI:</label>
+                <input type="text" id="edit-dni" readonly>
+            </div>
+            <div class="form-group">
+                <label for="edit-nombre">Nombre:</label>
+                <input type="text" id="edit-nombre">
+            </div>
+            <div class="form-group">
+                <label for="edit-domicilio">Domicilio:</label>
+                <input type="text" id="edit-domicilio">
+            </div>
+            <div class="form-group">
+                <label for="edit-celular">Celular:</label>
+                <input type="text" id="edit-celular">
+            </div>
+            <div class="form-group">
+                <label for="edit-estado">Estado:</label>
+                <select id="edit-estado">
+                    <option value="">Seleccione estado</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="pago">Pago</option>
+                </select>
+            </div>
+            <div class="buttons">
+                <button id="edit-btn">Guardar Cambios</button>
+                <button id="cancel-edit-btn" type="button">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Eliminar Cliente</h3>
+        <div class="form-group">
+            <label for="delete-dni">DNI del cliente a eliminar:</label>
+            <input type="text" id="delete-dni" placeholder="Ingrese DNI">
+        </div>
+        <button id="delete-btn" class="delete">Eliminar Cliente</button>
+    </div>
+
+    <h2>Lista de Clientes</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>DNI</th>
+                <th>Nombre</th>
+                <th>Domicilio</th>
+                <th>Celular</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody id="clientes-lista">
+        </tbody>
+    </table>
+
+    <script>
+        // Función para mostrar mensajes
+        function showMessage(message, type) {
+            const container = document.getElementById("message-container");
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message", type);
+            messageDiv.textContent = message;
+            container.innerHTML = "";
+            container.appendChild(messageDiv);
+            
+            // Eliminar el mensaje después de 3 segundos
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // Manejar el envío del formulario para agregar un cliente
+        document.getElementById("client-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const dni = document.getElementById("dni").value;
+            const nombre = document.getElementById("nombre").value;
+            const domicilio = document.getElementById("domicilio").value;
+            const celular = document.getElementById("celular").value;
+            const estado = document.getElementById("estado").value;
+
+            window.electronAPI.addClient({ dni, nombre, domicilio, celular, estado });
+            showMessage("Cliente agregado correctamente", "success");
+            document.getElementById("client-form").reset();
+            
+            setTimeout(() => {
+                window.electronAPI.requestClients();
+            }, 500);
+        });
+
+        // Actualizar la lista de clientes
+        function actualizarListaClientes(clientes) {
+            const lista = document.getElementById("clientes-lista");
+            lista.innerHTML = "";
+
+            if (clientes.length === 0) {
+                const row = document.createElement("tr");
+                row.innerHTML = '<td colspan="5" style="text-align: center;">No se encontraron clientes</td>';
+                lista.appendChild(row);
+                return;
+            }
+
+            clientes.forEach((cliente) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${cliente.dni}</td>
+                    <td>${cliente.nombre}</td>
+                    <td>${cliente.domicilio || ""}</td>
+                    <td>${cliente.celular}</td>
+                    <td>${cliente.estado}</td>
+                `;
+                lista.appendChild(row);
+            });
+        }
+
+        // Cargar clientes
+        window.electronAPI.getClients((clientes) => {
+            actualizarListaClientes(clientes);
+        });
+
+        // Buscar cliente por DNI para editar
+        document.getElementById("search-for-edit-btn").addEventListener("click", () => {
+            const dni = document.getElementById("edit-dni-search").value.trim();
+            if (!dni) {
+                showMessage("Ingrese un DNI para buscar", "error");
+                return;
+            }
+
+            window.electronAPI.getClientByDNI(dni, (cliente) => {
+                if (!cliente) {
+                    showMessage("Cliente no encontrado", "error");
+                    document.getElementById("edit-form").style.display = "none";
+                    return;
+                }
+
+                // Mostrar formulario de edición y llenar campos
+                document.getElementById("edit-form").style.display = "block";
+                document.getElementById("edit-dni").value = cliente.dni;
+                document.getElementById("edit-nombre").value = cliente.nombre;
+                document.getElementById("edit-domicilio").value = cliente.domicilio || "";
+                document.getElementById("edit-celular").value = cliente.celular;
+                document.getElementById("edit-estado").value = cliente.estado;
+            });
+        });
+
+        // Cancelar edición
+        document.getElementById("cancel-edit-btn").addEventListener("click", () => {
+            document.getElementById("edit-form").style.display = "none";
+            document.getElementById("edit-dni-search").value = "";
+        });
+
+        // Guardar cambios de edición
+        document.getElementById("edit-btn").addEventListener("click", () => {
+            const dni = document.getElementById("edit-dni").value;
+            const nombre = document.getElementById("edit-nombre").value;
+            const domicilio = document.getElementById("edit-domicilio").value;
+            const celular = document.getElementById("edit-celular").value;
+            const estado = document.getElementById("edit-estado").value;
+
+            // Validar campos requeridos
+            if (!nombre || !celular || !estado) {
+                showMessage("Los campos Nombre, Celular y Estado son obligatorios", "error");
+                return;
+            }
+
+            const cliente = { 
+                dni, 
+                nombre, 
+                domicilio, 
+                celular, 
+                estado 
+            };
+
+            window.electronAPI.updateClient(cliente);
+            
+            document.getElementById("edit-form").style.display = "none";
+            document.getElementById("edit-dni-search").value = "";
+        });
+
+        // Eliminar cliente
+        document.getElementById("delete-btn").addEventListener("click", () => {
+            const dni = document.getElementById("delete-dni").value.trim();
+            if (!dni) {
+                showMessage("Ingrese un DNI para eliminar", "error");
+                return;
+            }
+
+            if (confirm(`¿Está seguro que desea eliminar el cliente con DNI ${dni}?`)) {
+                window.electronAPI.deleteClient(dni);
+                document.getElementById("delete-dni").value = "";
+            }
+        });
+
+        // Buscar clientes
+        document.getElementById("search-btn").addEventListener("click", () => {
+            const searchTerm = document.getElementById("search-term").value.trim();
+            if (!searchTerm) {
+                window.electronAPI.requestClients();
+                return;
+            }
+            
+            window.electronAPI.searchClients(searchTerm);
+        });
+
+        // Ver todos los clientes
+        document.getElementById("clear-search-btn").addEventListener("click", () => {
+            document.getElementById("search-term").value = "";
+            window.electronAPI.requestClients();
+        });
+
+        // Escuchar los resultados de búsqueda
+        window.electronAPI.getSearchResults((clientes) => {
+            actualizarListaClientes(clientes);
+        });
+
+        // Eventos para mostrar mensajes de éxito/error
+        window.electronAPI.onClientAdded(() => {
+            showMessage("Cliente agregado correctamente", "success");
+        });
+
+        window.electronAPI.onClientEdited(() => {
+            showMessage("Cliente editado correctamente", "success");
+            window.electronAPI.requestClients();
+        });
+
+        window.electronAPI.onClientDeleted(() => {
+            showMessage("Cliente eliminado correctamente", "success");
+            window.electronAPI.requestClients();
+        });
+
+        window.electronAPI.onClientError((error) => {
+            showMessage(`Error: ${error}`, "error");
+        });
+
+        // Cargar clientes al iniciar
+        window.electronAPI.requestClients();
+    </script>
+</body>
+</html>
